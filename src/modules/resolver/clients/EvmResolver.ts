@@ -105,4 +105,74 @@ export class EvmResolver extends AbstractResolver {
       blockNumber: receipt?.blockNumber,
     };
   }
+
+  // Fusion-specific methods for cross-chain operations
+  
+  async deploySrcEscrow(params: {
+    chainId: string;
+    order: any; // TODO: Use proper order type from 1inch SDK
+    signature: string;
+    takerTraits: any;
+    fillAmount: string;
+    hashLock?: any;
+  }): Promise<{ txHash: string; blockHash: string }> {
+    // TODO: Implement actual source escrow deployment
+    // This should integrate with 1inch Limit Order Protocol
+    // Similar to resolverContract.deploySrc() in fusion-tests.ts
+    
+    throw new Error('NotImplemented: EVM source escrow deployment not yet implemented');
+  }
+
+  async deployDstEscrow(params: {
+    dstImmutables: any; // TODO: Use proper immutables type from 1inch SDK
+  }): Promise<{ txHash: string; blockTimestamp: number }> {
+    // TODO: Implement actual destination escrow deployment
+    // This should create escrow with resolver's tokens
+    // Similar to resolverContract.deployDst() in fusion-tests.ts
+    
+    throw new Error('NotImplemented: EVM destination escrow deployment not yet implemented');
+  }
+
+  async withdrawFromEscrow(params: {
+    escrowType: 'src' | 'dst';
+    escrowAddress: string;
+    secret: string;
+    immutables: any; // TODO: Use proper immutables type
+  }): Promise<string> {
+    // TODO: Implement actual escrow withdrawal
+    // This should reveal secret and withdraw funds
+    // Similar to resolverContract.withdraw() in fusion-tests.ts
+    
+    throw new Error('NotImplemented: EVM escrow withdrawal not yet implemented');
+  }
+
+  async cancelEscrow(params: {
+    escrowType: 'src' | 'dst';
+    escrowAddress: string;
+    immutables: any;
+  }): Promise<string> {
+    // TODO: Implement escrow cancellation for timeout scenarios
+    // Similar to resolverContract.cancel() in fusion-tests.ts
+    
+    throw new Error('NotImplemented: EVM escrow cancellation not yet implemented');
+  }
+
+  async getSrcDeployEvent(blockHash: string): Promise<any[]> {
+    // TODO: Implement event parsing for source deployment
+    // Should extract escrow immutables from deployment event
+    
+    throw new Error('NotImplemented: EVM source deploy event parsing not yet implemented');
+  }
+
+  async getEscrowAddress(params: {
+    escrowType: 'src' | 'dst';
+    factoryAddress: string;
+    immutables: any;
+    implementation?: string;
+  }): Promise<string> {
+    // TODO: Implement escrow address calculation
+    // Should use EscrowFactory.getSrcEscrowAddress() or getDstEscrowAddress()
+    
+    throw new Error('NotImplemented: EVM escrow address calculation not yet implemented');
+  }
 }

@@ -43,22 +43,22 @@ export class SettingsService {
         swaggerPrefix: getOrThrow('APP_SWAGGER_PREFIX'),
       },
       blockchain: {
-        [CHAIN_TYPE.TON]: {
+        ton: {
           mode: CHAIN_MODE.TESTNET,
           rpcUrl: getOrThrow('TON_RPC_URL'),
           escrowFactory: getOrThrow('TON_ESCROW_FACTORY'),
         },
-        [CHAIN_TYPE.EVM]: {
+        evm: {
           mode: CHAIN_MODE.TESTNET,
           rpcUrl: getOrThrow('EVM_RPC_URL'),
           escrowFactory: getOrThrow('EVM_ESCROW_FACTORY'),
         },
       },
       resolver: {
-        [CHAIN_TYPE.TON]: {
+        ton: {
           privateKey: getOrThrow('TON_PRIVATE_KEY'),
         },
-        [CHAIN_TYPE.EVM]: {
+        evm: {
           privateKey: getOrThrow('EVM_PRIVATE_KEY'),
         },
       },

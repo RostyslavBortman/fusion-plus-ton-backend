@@ -33,4 +33,12 @@ export class ResolverFactoryService {
   getResolverFromMnemonic(chainType: CHAIN_TYPE, mnemonic: string[]): AbstractResolver {
     return this.getResolver(chainType, { mnemonic });
   }
+
+  createEvmResolver(credentials: ResolverCredentials): AbstractResolver {
+    return new EvmResolver(this.evmService, credentials);
+  }
+
+  createTonResolver(credentials: ResolverCredentials): AbstractResolver {
+    return new TonResolver(this.tonService, credentials);
+  }
 }

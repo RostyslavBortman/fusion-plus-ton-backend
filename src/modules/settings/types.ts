@@ -8,22 +8,22 @@ export interface ISettings {
     swaggerPrefix: string;
   };
   blockchain: {
-    [CHAIN_TYPE.TON]: {
+    ton: {
       mode: CHAIN_MODE;
       rpcUrl: string;
       escrowFactory: string;
     };
-    [CHAIN_TYPE.EVM]: {
+    evm: {
       mode: CHAIN_MODE;
       rpcUrl: string;
       escrowFactory: string;
     };
   };
   resolver: {
-    [CHAIN_TYPE.TON]: {
+    ton: {
       privateKey: string;
     };
-    [CHAIN_TYPE.EVM]: {
+    evm: {
       privateKey: string;
     };
   };

@@ -11,6 +11,6 @@ export const setupSwagger = (app: any, prefix: string, appUrl: string): void => 
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  logger.log(`Server API ${appUrl}/${prefix}`);
+  logger.log(`Server API ${appUrl}${prefix}`);
   SwaggerModule.setup(prefix, app, document);
 };

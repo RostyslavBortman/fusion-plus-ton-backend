@@ -135,6 +135,76 @@ export class TonResolver extends AbstractResolver {
     }
   }
 
+  // Fusion-specific methods for cross-chain operations
+  
+  async deploySrcEscrow(params: {
+    chainId: string;
+    order: any; // TODO: Use proper order type adapted for TON
+    signature: string;
+    takerTraits: any;
+    fillAmount: string;
+    hashLock?: any;
+  }): Promise<{ txHash: string; blockHash: string }> {
+    // TODO: Implement TON-specific source escrow deployment
+    // This should create escrow contract on TON with proper hash locks
+    // Adapted from EVM version for TON blockchain specifics
+    
+    throw new Error('NotImplemented: TON source escrow deployment not yet implemented');
+  }
+
+  async deployDstEscrow(params: {
+    dstImmutables: any; // TODO: Use proper immutables type adapted for TON
+  }): Promise<{ txHash: string; blockTimestamp: number }> {
+    // TODO: Implement TON-specific destination escrow deployment
+    // This should create escrow with resolver's tokens on TON
+    // Handle TON-specific contract deployment patterns
+    
+    throw new Error('NotImplemented: TON destination escrow deployment not yet implemented');
+  }
+
+  async withdrawFromEscrow(params: {
+    escrowType: 'src' | 'dst';
+    escrowAddress: string;
+    secret: string;
+    immutables: any;
+  }): Promise<string> {
+    // TODO: Implement TON-specific escrow withdrawal
+    // This should reveal secret and execute withdrawal on TON
+    // Handle TON-specific transaction patterns and gas management
+    
+    throw new Error('NotImplemented: TON escrow withdrawal not yet implemented');
+  }
+
+  async cancelEscrow(params: {
+    escrowType: 'src' | 'dst';
+    escrowAddress: string;
+    immutables: any;
+  }): Promise<string> {
+    // TODO: Implement TON-specific escrow cancellation
+    // Handle timeout scenarios and refund mechanisms on TON
+    
+    throw new Error('NotImplemented: TON escrow cancellation not yet implemented');
+  }
+
+  async getSrcDeployEvent(blockHash: string): Promise<any[]> {
+    // TODO: Implement TON-specific event parsing for source deployment
+    // TON uses different event/log mechanisms compared to EVM
+    
+    throw new Error('NotImplemented: TON source deploy event parsing not yet implemented');
+  }
+
+  async getEscrowAddress(params: {
+    escrowType: 'src' | 'dst';
+    factoryAddress: string;
+    immutables: any;
+    implementation?: string;
+  }): Promise<string> {
+    // TODO: Implement TON-specific escrow address calculation
+    // TON uses different address derivation than EVM chains
+    
+    throw new Error('NotImplemented: TON escrow address calculation not yet implemented');
+  }
+
   private async sendTransaction(to: string, amount: string): Promise<string> {
     if (!this.wallet || !this.privateKey) {
       await this.initialize();

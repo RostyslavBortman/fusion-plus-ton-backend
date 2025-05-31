@@ -40,7 +40,7 @@ async function bootstrap(): Promise<void> {
   });
   setupSwagger(app, prefix, url);
   await app.listen(port);
-  logger.log(`Server is running on ${url}:${port}`);
+  logger.log(`Server is running on ${url}`);
 }
 bootstrap().catch((error) => {
   logger.error(error);
