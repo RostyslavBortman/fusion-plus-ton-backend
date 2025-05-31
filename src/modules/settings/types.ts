@@ -17,6 +17,7 @@ export interface ISettings {
       mode: CHAIN_MODE;
       rpcUrl: string;
       escrowFactory: string;
+      locContract: string;
     };
   };
   resolver: {

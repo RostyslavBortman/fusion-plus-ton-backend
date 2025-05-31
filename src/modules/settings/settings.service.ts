@@ -52,6 +52,7 @@ export class SettingsService {
           mode: CHAIN_MODE.TESTNET,
           rpcUrl: getOrThrow('EVM_RPC_URL'),
           escrowFactory: getOrThrow('EVM_ESCROW_FACTORY'),
+          locContract: getOrThrow('EVM_LOC_CONTRACT'),
         },
       },
       resolver: {

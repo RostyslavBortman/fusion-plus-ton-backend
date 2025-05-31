@@ -22,16 +22,8 @@ export class CoreService {
 
     try {
       // Start resolver flow Phase 1 for the new order
-      const result = await this.resolverService.startResolverFlow(event.order);
-
-      // Update order status with escrow details
-      this.orderService.updateEscrowDetails(event.order.id!, {
-        src: { address: result.srcEscrowAddress, txHash: '' }, // TODO: Get actual tx hash
-        dst: { address: result.dstEscrowAddress, txHash: '' }, // TODO: Get actual tx hash
-      });
-
-      // Update status to ESCROWS_DEPLOYED
-      this.orderService.updateOrderStatus(event.order.id!, OrderStatus.ESCROWS_DEPLOYED);
+      // Note: Order status updates are now handled inside the resolver service
+      await this.resolverService.startResolverFlow(event.order);
       this.logger.log(`Completed resolver flow Phase 1 for order: ${event.order.id} - escrows deployed`);
     } catch (error) {
       this.logger.error(`Failed to start resolver flow for order ${event.order.id}:`, error);
@@ -45,15 +37,8 @@ export class CoreService {
 
     try {
       // Start resolver flow Phase 2 with the revealed secret
-      const result = await this.resolverService.completeResolverFlow(event.order, event.secret);
-
-      // Update order with completion details
-      this.orderService.updateWithdrawalDetails(event.order.id!, {
-        dstTxHash: result.dstWithdrawalTx,
-        srcTxHash: result.srcWithdrawalTx,
-      });
-      this.orderService.updateOrderStatus(event.order.id!, OrderStatus.COMPLETED);
-
+      // Note: Order status updates are now handled inside the resolver service
+      await this.resolverService.completeResolverFlow(event.order, event.secret);
       this.logger.log(`Completed resolver flow Phase 2 for order: ${event.order.id} - swap completed`);
     } catch (error) {
       this.logger.error(`Failed to complete resolver flow for order ${event.order.id}:`, error);

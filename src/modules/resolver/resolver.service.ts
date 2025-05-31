@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { OrderStatus } from '../order/constants';
 import { OrderModel } from '../order/models/order.model';
 import { OrderService } from '../order/order.service';
-import { SettingsService } from '../settings/settings.service';
 import { isTonChain } from '../settings/constants';
+import { SettingsService } from '../settings/settings.service';
 import { AbstractResolver } from './clients/AbstractResolver';
 import { ResolverFactoryService } from './resolver-factory.service';
 
@@ -51,9 +52,20 @@ export class ResolverService {
       const dstEscrowResult = await this.deployDstEscrow(order, dstChain, srcEscrowResult);
       this.logger.log(`Destination escrow deployed at: ${dstEscrowResult.address}`);
 
-      // 5. Verify both escrows are properly funded
+      // 5. Update order status with escrow details
+      this.orderService.updateEscrowDetails(order.id!, {
+        src: { address: srcEscrowResult.address, txHash: srcEscrowResult.txHash },
+        dst: { address: dstEscrowResult.address, txHash: dstEscrowResult.txHash },
+      });
+      this.logger.log('Order status updated with escrow details');
+
+      // 6. Verify both escrows are properly funded
       await this.verifyEscrowsFunding(order, srcEscrowResult, dstEscrowResult, srcChain, dstChain);
       this.logger.log('Both escrows verified and funded');
+
+      // 7. Update order status to indicate escrows are deployed and ready
+      this.orderService.updateOrderStatus(order.id!, OrderStatus.ESCROWS_DEPLOYED);
+      this.logger.log('Order status updated to ESCROWS_DEPLOYED');
 
       this.logger.log(`Resolver flow phase 1 completed for order: ${order.id}`);
 
@@ -80,25 +92,31 @@ export class ResolverService {
     this.logger.log(`Completing resolver flow for order: ${order.id} with revealed secret`);
 
     try {
-      // Extract chain configurations (same as phase 1)
+      // 1. Update order status to indicate secret has been revealed
+      this.orderService.updateOrderStatus(order.id!, OrderStatus.SECRET_REVEALED);
+      this.logger.log('Order status updated to SECRET_REVEALED');
+
+      // 2. Extract chain configurations (same as phase 1)
       const { srcChain, dstChain } = await this.extractChainConfigs(order);
       await this.initializeResolvers(srcChain, dstChain);
 
-      // Get escrow addresses (in production, these would be stored/retrieved)
-      const srcEscrowAddress = await this.getStoredEscrowAddress(order.id!, 'src');
-      const dstEscrowAddress = await this.getStoredEscrowAddress(order.id!, 'dst');
+      // 3. Get escrow details from order status (updated in phase 1)
+      const orderStatus = this.orderService.getOrderStatus(order.id!);
+      if (!orderStatus.escrows) {
+        throw new Error(`Escrow details not found for order: ${order.id}`);
+      }
 
       const srcEscrowResult: EscrowDeploymentResult = {
-        address: srcEscrowAddress,
-        txHash: '', // Would be retrieved from storage
+        address: orderStatus.escrows.src.address,
+        txHash: orderStatus.escrows.src.txHash,
       };
 
       const dstEscrowResult: EscrowDeploymentResult = {
-        address: dstEscrowAddress,
-        txHash: '', // Would be retrieved from storage
+        address: orderStatus.escrows.dst.address,
+        txHash: orderStatus.escrows.dst.txHash,
       };
 
-      // 6. Execute atomic withdrawals with provided secret
+      // 4. Execute atomic withdrawals with provided secret
       const { dstTxHash, srcTxHash } = await this.executeWithdrawals(
         order,
         srcEscrowResult,
@@ -107,6 +125,14 @@ export class ResolverService {
         dstChain,
         secret,
       );
+
+      // 5. Update order status with withdrawal transaction details
+      this.orderService.updateWithdrawalDetails(order.id!, { dstTxHash, srcTxHash });
+      this.logger.log('Order status updated with withdrawal transaction details');
+
+      // 6. Update order status to completed
+      this.orderService.updateOrderStatus(order.id!, OrderStatus.COMPLETED);
+      this.logger.log('Order status updated to COMPLETED');
 
       this.logger.log(`Resolver flow completed successfully for order: ${order.id}`);
 
@@ -195,10 +221,12 @@ export class ResolverService {
         signature,
         takerTraits,
         fillAmount: order.makingAmount,
+        userAddress: order.maker, // The user who created the order
+        tokenAddress: order.makerAsset, // The token being sold by the user
       });
 
       return {
-        address: await this.calculateSrcEscrowAddress(order, srcChain, result),
+        address: result.escrowAddress || (await this.calculateSrcEscrowAddress(order, srcChain, result)),
         txHash: result.txHash,
         blockHash: result.blockHash,
       };
@@ -247,19 +275,31 @@ export class ResolverService {
     srcChain: ChainConfig,
     dstChain: ChainConfig,
   ): Promise<void> {
-    this.logger.log('Verifying escrow funding');
+    this.logger.log('Verifying and funding escrows');
 
-    // Check source escrow has user's tokens
+    // Check source escrow has user's tokens (should already be funded from deploySrcEscrow)
     const srcBalance = await srcChain.resolver.getContractBalance(srcEscrowResult.address, order.makerAsset);
+    this.logger.log(`Source escrow balance: ${srcBalance}`);
 
-    // Check destination escrow has resolver's tokens
+    // Fund destination escrow with resolver's tokens if needed
     const dstBalance = await dstChain.resolver.getContractBalance(dstEscrowResult.address, order.takerAsset);
+    this.logger.log(`Destination escrow balance before funding: ${dstBalance}`);
 
-    this.logger.log(`Source escrow balance: ${srcBalance}, Destination escrow balance: ${dstBalance}`);
+    if (dstBalance === '0') {
+      this.logger.log('Funding destination escrow with resolver tokens');
+      await dstChain.resolver.lockFunds(dstEscrowResult.address, order.takingAmount, order.takerAsset);
 
-    // TODO: Add actual balance verification logic
-    if (srcBalance === '0' || dstBalance === '0') {
-      throw new Error('Escrow funding verification failed');
+      // Verify funding was successful
+      const newDstBalance = await dstChain.resolver.getContractBalance(dstEscrowResult.address, order.takerAsset);
+      this.logger.log(`Destination escrow balance after funding: ${newDstBalance}`);
+      if (newDstBalance === '0') {
+        throw new Error('Failed to fund destination escrow');
+      }
+    }
+
+    // Final verification that both escrows are properly funded
+    if (srcBalance === '0') {
+      throw new Error('Source escrow funding verification failed - user funds not transferred');
     }
   }
 
@@ -379,18 +419,6 @@ export class ResolverService {
   }
 
   // Helper methods for order processing
-
-  private async getStoredEscrowAddress(orderId: string, escrowType: 'src' | 'dst'): Promise<string> {
-    this.logger.log(`Retrieving ${escrowType} escrow address for order: ${orderId}`);
-
-    const orderStatus = this.orderService.getOrderStatus(orderId);
-
-    if (!orderStatus.escrows) {
-      throw new Error(`Escrow details not found for order: ${orderId}`);
-    }
-
-    return escrowType === 'src' ? orderStatus.escrows.src.address : orderStatus.escrows.dst.address;
-  }
 
   private async createOrderSignature(_order: OrderModel, _srcChain: ChainConfig): Promise<string> {
     // TODO: Implement proper order signing based on 1inch SDK
